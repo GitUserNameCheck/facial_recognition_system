@@ -44,53 +44,50 @@ class FaceRecognizerOctupletLoss(FaceRecognizer):
                 embeddings_batch = self.face_recognizer.run(None, {"input_image": aligned_images_batch})[0]
                 return embeddings_batch
             else:
+                self.logger.info("Can't calculate embedding from face")
                 return []
 
     def __align_faces(self, landmarks_arr: List[np.ndarray], _img_rgb: np.ndarray) -> List[np.ndarray]:
         aligned_images = []
-        for landmarks_from_one_image, image in zip(landmarks_arr, _img_rgb):
-            for landmarks in landmarks_from_one_image:
-                self.tform.estimate(landmarks, LANDMARKS_TARGET)
-                tmatrix = self.tform.params[0:2, :]
-                img_aligned = cv2.warpAffine(image, tmatrix, (112, 112), borderValue=0.0)
-                aligned_images.append(img_aligned)
+        for landmarks in landmarks_arr:
+            self.tform.estimate(landmarks, LANDMARKS_TARGET)
+            tmatrix = self.tform.params[0:2, :]
+            img_aligned = cv2.warpAffine(_img_rgb, tmatrix, (112, 112), borderValue=0.0)
+            aligned_images.append(img_aligned)
         return aligned_images
         
     def __find_faces(self, _img_rgb: np.ndarray) -> Tuple[List[List], List[np.ndarray]]:
         face_bbs = []
         landmarks_arr = []
-        for img in _img_rgb:
-            result = self.face_detector.process(img)
-            if result.multi_face_landmarks:
-                landmarks_from_one_image_arr = []
-                for landmark in result.multi_face_landmarks:
-                    # Select 5 Landmarks (Eye Centers, Nose Tip, Left Mouth Corner, Right Mouth Corner)
-                    five_landmarks = np.asarray(landmark.landmark)[[470, 475, 1, 57, 287]]
+        result = self.face_detector.process(_img_rgb)
+        if result.multi_face_landmarks:
+            for landmark in result.multi_face_landmarks:
+                # Select 5 Landmarks (Eye Centers, Nose Tip, Left Mouth Corner, Right Mouth Corner)
+                five_landmarks = np.asarray(landmark.landmark)[[470, 475, 1, 57, 287]]
 
-                    # Extract the x and y coordinates of the landmarks of interest
-                    landmarks = np.asarray(
-                        [[landmark.x * img.shape[1], landmark.y * img.shape[0]] for landmark in five_landmarks]
-                    )
+                # Extract the x and y coordinates of the landmarks of interest
+                landmarks = np.asarray(
+                    [[landmark.x * _img_rgb.shape[1], landmark.y * _img_rgb.shape[0]] for landmark in five_landmarks]
+                )
 
-                    # Extract the x and y coordinates of all landmarks
-                    all_x_coords = [landmark.x * img.shape[1] for landmark in landmark.landmark]
-                    all_y_coords = [landmark.y * img.shape[0] for landmark in landmark.landmark]
+                # Extract the x and y coordinates of all landmarks
+                all_x_coords = [landmark.x * _img_rgb.shape[1] for landmark in landmark.landmark]
+                all_y_coords = [landmark.y * _img_rgb.shape[0] for landmark in landmark.landmark]
 
-                    # Compute the bounding box of the face
-                    x_min, x_max = int(min(all_x_coords)), int(max(all_x_coords))
-                    y_min, y_max = int(min(all_y_coords)), int(max(all_y_coords))
-                    face_bbs.append([x_min, y_min, x_max, y_max])
-                    landmarks_from_one_image_arr.append(landmarks)
-                landmarks_arr.append(landmarks_from_one_image_arr)    
-            else:
-                self.logger.info("Could not find faces on image")       
+                # Compute the bounding box of the face
+                x_min, x_max = int(min(all_x_coords)), int(max(all_x_coords))
+                y_min, y_max = int(min(all_y_coords)), int(max(all_y_coords))
+
+                face_bbs.append([x_min, y_min, x_max, y_max])
+                landmarks_arr.append(landmarks)
+        else:
+            self.logger.info("Could not find faces on image")  
+
         return face_bbs, landmarks_arr
 
     def __calculate_embeddings(self, _img_rgb: np.ndarray) -> Tuple[List[np.ndarray], List[List[float]]]:
         face_bbs, landmarks_arr = self.__find_faces(_img_rgb)
-        self.logger.info("faces found")
         aligned_images = self.__align_faces(landmarks_arr, _img_rgb)
-        self.logger.info("images aligned")
         return self.__calculate_embedding_from_face(aligned_images), face_bbs
 
     def get_image_embeddings(self, image: np.ndarray) -> Tuple[List[np.ndarray], List[List[float]]]:
