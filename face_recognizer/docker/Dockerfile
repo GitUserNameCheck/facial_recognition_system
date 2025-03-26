@@ -12,6 +12,7 @@ ENV PYTHONPATH "${PYTHONPATH}:/face_recognizer_root"
 ADD face_encoder /face_recognizer_root/face_encoder
 ADD tests /face_recognizer_root/tests
 ADD resources /face_recognizer_root/resources
+ADD models /face_recognizer_root/models
 ADD VERSION /face_recognizer_root
 
 CMD ["python3.8", "/face_recognizer_root/face_encoder/main.py"]

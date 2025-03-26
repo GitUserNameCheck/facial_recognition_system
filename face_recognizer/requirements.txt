@@ -17,5 +17,8 @@ strawberry-graphql==0.205.0
 pycodestyle~=2.9.1
 starlette==0.26.1
 opencv_python==4.7.0.72
-Pillow==6.0.0
+Pillow==9.0.1
 ptal-api==0.11.4.2
+mediapipe==0.10.11
+onnxruntime==1.19.2
+scikit-image==0.21.0
