@@ -42,7 +42,7 @@ class FaceRecognizerOctupletLoss(FaceRecognizer):
                 aligned_images_batch = np.asarray(aligned_images).astype(np.float32)
                 aligned_images_batch = aligned_images_batch.clip(0.0, 255.0).transpose(0, 3, 1, 2)
                 embeddings_batch = self.face_recognizer.run(None, {"input_image": aligned_images_batch})[0]
-                return embeddings_batch
+                return embeddings_batch.tolist()
             else:
                 self.logger.info("Can't calculate embedding from face")
                 return []
