@@ -12,6 +12,7 @@ from facenet_pytorch.models.inception_resnet_v1 import get_torch_home
 from face_encoder.exceptions.base_exception import ServiceBaseException
 from face_encoder.exceptions.s3_exception import S3Exception
 from face_encoder.face_recognizer.face_recognizer_facenet import FaceRecognizerFacenet
+from face_encoder.face_recognizer.face_recognizer_octuplet_loss import FaceRecognizerOctupletLoss
 from face_encoder.exceptions.bad_file_format_exception import BadFileFormatException
 from face_encoder.external_services.s3_client import S3Client
 from face_encoder.logger import logger
@@ -33,7 +34,7 @@ class Manager:
         )
         self.logger = logger
         self.s3_client = S3Client(self.logger)
-        self.face_recognizer = FaceRecognizerFacenet(on_gpu=False)
+        self.face_recognizer = FaceRecognizerOctupletLoss()
 
     def __get_image(self, path: str) -> np.ndarray:
         if not path.endswith(tuple(self.image_extensions)):
@@ -64,7 +65,7 @@ class Manager:
             self.logger.info("faces have recognized from image")
             return embedding, face_bbs
         except Exception as exception:
-            self.logger.error(f"Error in face encoder: {exception}")
+            self.logger.error(f"Error in face encoder: {exception}" , exc_info=True)
             raise exception
 
     def insert_embeddings_to_db(self, uuid: str, embeddings: List[np.ndarray], expected_code: int = 200):

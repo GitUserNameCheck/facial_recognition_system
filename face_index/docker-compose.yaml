@@ -2,27 +2,35 @@ version: '2.4'
 services:
   pg:
     image: postgres:9.6
+    networks:
+      - mysharednetwork
     restart: always
-
     environment:
-      POSTGRES_PASSWORD: postgres
       POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
       POSTGRES_DB: face_index
+    ports:
+      - "5432:5432"
     healthcheck:
         test: ["CMD-SHELL", "pg_isready -U postgres"]
         interval: 2s
         timeout: 2s
         retries: 10
-    ports:
-      - "5432:5432"
     command:
         "postgres -c max_connections=128 -c shared_buffers=4GB -c effective_cache_size=4GB -c work_mem=256MB"
+    volumes:
+      - C:/Users/howto/Downloads/NN/data:/var/lib/postgresql/data
 
   face_index:
     mem_limit: 16G
     build:
       context: .
       dockerfile: docker/Dockerfile
+    depends_on:
+      pg:
+        condition: service_healthy
+    networks:
+      - mysharednetwork
     restart: always
     tty: true
     ports:
@@ -31,3 +39,7 @@ services:
       PYTHONUNBUFFERED: 1
       FACE_INDEX_PORT: 4445
       DB_URL: postgresql://postgres:postgres@pg:5432/face_index
+
+networks:
+  mysharednetwork:
+    external: true 
